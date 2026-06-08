@@ -1721,8 +1721,6 @@ namespace Pachyderm_Acoustic
             public Map_Receiver(double Diameter, int i, Hare.Geometry.Point Point, Source Src, double SoundSpeed, double rho, double[] Attenuation, int SampleRate_in, double COTime_in, uint BoxCt, bool Time1Pt, bool Directional)
             {
                 Ray_ID = new int[BoxCt];
-                Radius = 1;
-                Radius2 = Radius * Radius;
                 CO_Time = COTime_in;
                 SampleRate = SampleRate_in;
                 Origin = Point;
@@ -1790,15 +1788,15 @@ namespace Pachyderm_Acoustic
                 double t = (t1 + t2) / 2;
                 if (t > 0 && t * t < SqDistance(endPt.x, endPt.y, endPt.z, r.x, r.y, r.z))
                 {
-                    double raydist = t / C_Sound + r.t_sum - Direct_Time;
-                    Recs.Add(raydist, r.Energy[0] * Math.Pow(10, -.1 * Atten[0] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 0);
-                    Recs.Add(raydist, r.Energy[1] * Math.Pow(10, -.1 * Atten[1] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 1);
-                    Recs.Add(raydist, r.Energy[2] * Math.Pow(10, -.1 * Atten[2] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 2);
-                    Recs.Add(raydist, r.Energy[3] * Math.Pow(10, -.1 * Atten[3] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 3);
-                    Recs.Add(raydist, r.Energy[4] * Math.Pow(10, -.1 * Atten[4] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 4);
-                    Recs.Add(raydist, r.Energy[5] * Math.Pow(10, -.1 * Atten[5] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 5);
-                    Recs.Add(raydist, r.Energy[6] * Math.Pow(10, -.1 * Atten[6] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 6);
-                    Recs.Add(raydist, r.Energy[7] * Math.Pow(10, -.1 * Atten[7] * raydist) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 7);
+                    double raytime = t / C_Sound + r.t_sum - Direct_Time;
+                    Recs.Add(raytime, r.Energy[0] * Math.Pow(10, -.1 * Atten[0] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 0);
+                    Recs.Add(raytime, r.Energy[1] * Math.Pow(10, -.1 * Atten[1] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 1);
+                    Recs.Add(raytime, r.Energy[2] * Math.Pow(10, -.1 * Atten[2] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 2);
+                    Recs.Add(raytime, r.Energy[3] * Math.Pow(10, -.1 * Atten[3] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 3);
+                    Recs.Add(raytime, r.Energy[4] * Math.Pow(10, -.1 * Atten[4] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 4);
+                    Recs.Add(raytime, r.Energy[5] * Math.Pow(10, -.1 * Atten[5] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 5);
+                    Recs.Add(raytime, r.Energy[6] * Math.Pow(10, -.1 * Atten[6] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 6);
+                    Recs.Add(raytime, r.Energy[7] * Math.Pow(10, -.1 * Atten[7] * raytime * C_Sound) * SizeMod, -r.dx, -r.dy, -r.dz, Rho_C, 7);
                 }
             }
 
@@ -1820,16 +1818,10 @@ namespace Pachyderm_Acoustic
                 double t = (t1 + t2) / 2;
                 if (t > 0 && t * t < SqDistance(endPt.x, endPt.y, endPt.z, R.x, R.y, R.z))
                 {
-                    double raydist = t / C_Sound + R.t_sum - Direct_Time;
-                    Recs.Add(raydist, R.Intensity * Math.Pow(10, -.1 * Atten[R.Octave] * raydist) * SizeMod, -R.dx, -R.dy, -R.dz, Rho_C, R.Octave);// / (1.33333333333333 * Math.PI * Min_Radius2 * Min_Radius), EndPt - R.Origin, R.Octave);//R.Scat_Mod * // - Direct_Time
+                    double raytime = t / C_Sound + R.t_sum - Direct_Time;
+                    Recs.Add(raytime, R.Intensity * Math.Pow(10, -.1 * Atten[R.Octave] * raytime * C_Sound) * SizeMod, -R.dx, -R.dy, -R.dz, Rho_C, R.Octave);// / (1.33333333333333 * Math.PI * Min_Radius2 * Min_Radius), EndPt - R.Origin, R.Octave);//R.Scat_Mod * // - Direct_Time
                 }
             }
-        
-            //public void Create_Pressure(double[] SWL, int ThreadID)
-            //{
-            //    Recs.P = Audio.Pach_SP.Filter_Interpolation(SWL, Recs.Energy, 1000, 44100, this.Rho_C);
-            //    Recs.P = Audio.Pach_SP.Filter2Signal(Recs.P, SWL, SampleRate, ThreadID);
-            //}
         }
     }
 }

@@ -20,7 +20,9 @@ using Pachyderm_Acoustic.AbsorptionModels;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.Security.Cryptography;
 
 namespace Pachyderm_Acoustic
 {
@@ -48,112 +50,140 @@ namespace Pachyderm_Acoustic
         private const string ACOUSTIC_MATERIALS_URL = "https://data.mendeley.com/public-files/datasets/dj3cs2psm9/files/ef58fa43-af34-4378-94f4-42e30d07f9e5/file_downloaded";
         private const string WALL_ASSEMBLIES_URL = "https://data.mendeley.com/public-files/datasets/dj3cs2psm9/files/d95e4f01-4c5e-4117-b3ce-4e887e465aae/file_downloaded";
 
+        private const string SIDELOAD_ACOUSTIC_MATERIALS_FILE = "Acoustic_Materials_and_ECCs_Sideload.csv";
+        private const string SIDELOAD_WALL_ASSEMBLIES_FILE = "Wall_Assemblies_EC_Sideload.csv";
         public EHM_Data_Library()
-            : base()
         {
             // Check for updated files before loading
             CheckForUpdatedFiles();
 
-            //Read Absorption values in from library file designated on the Options Page...
             System.IO.StreamReader ML_Reader;
-            try
-            {
-                string MLPath = Pach_Properties.Instance.Lib_Path;
-                MLPath += "\\Acoustic_Materials_and_ECCs.csv";
-                ML_Reader = new System.IO.StreamReader(MLPath);
-                ML_Reader.ReadLine();
-                do
-                {
-                    try
-                    {
-                        string Material = ML_Reader.ReadLine();
-                        string[] D_Mat = Material.Split(new char[] { ',' });
-                        string Name = D_Mat[0].Trim();
-                        Names.Add(Name);
-                        Category.Add(D_Mat[1].Trim());
-                        Application.Add(D_Mat[2].Trim());
-                        Density_kgm.Add(double.Parse(D_Mat[3].Trim()));
-                        double T = double.Parse(D_Mat[4].Trim());
-                        Thickness.Add(T);
-                        Flow_Resistivity.Add(double.Parse(D_Mat[5].Trim()));
-                        FR_Dev.Add(double.Parse(D_Mat[6].Trim('(', ')', '±')));
-                        Abs_Coef.Add(new double[13] { double.Parse(D_Mat[7].Trim()), double.Parse(D_Mat[8].Trim()), double.Parse(D_Mat[9].Trim()), double.Parse(D_Mat[10].Trim()), double.Parse(D_Mat[11].Trim()), double.Parse(D_Mat[12].Trim()), double.Parse(D_Mat[13].Trim()), double.Parse(D_Mat[14].Trim()), double.Parse(D_Mat[15].Trim()), double.Parse(D_Mat[16].Trim()), double.Parse(D_Mat[17].Trim()), double.Parse(D_Mat[18].Trim()), double.Parse(D_Mat[19].Trim()) });
-                        Abs_Method.Add(D_Mat[20].Contains("534") ? 0 : D_Mat[29].Contains("354") ? 1 : -1);
-                        double Simp_ECC_GWP = double.Parse(D_Mat[23]);
-                        ECC_Spec.Add(Simp_ECC_GWP);
-                        ECC_Abs.Add(Simp_ECC_GWP / T);
-                        Source.Add(D_Mat[22]);
-                    }
-                    catch (System.Exception)
-                    { continue; }
-                } while (!ML_Reader.EndOfStream);
-                ML_Reader.Close();
-            }
-            catch (System.Exception)
-            {
-            }
+            string libPath = Pach_Properties.Instance.Lib_Path;
 
-            try
+            List<string> materialLibraryPaths = new List<string>()
             {
-                string MLPath = Pach_Properties.Instance.Lib_Path;
-                MLPath += "\\Wall_Assemblies_EC.csv";
-                ML_Reader = new System.IO.StreamReader(MLPath);
-                ML_Reader.ReadLine();
-                List<string> lines = new List<string>();
-                do
-                {
-                    lines.Add(ML_Reader.ReadLine());
-                } while (!ML_Reader.EndOfStream);
-                ML_Reader.Close();
+                Path.Combine(libPath, "Acoustic_Materials_and_ECCs.csv"),
+                Path.Combine(libPath, SIDELOAD_ACOUSTIC_MATERIALS_FILE)
+            };
 
-                int i = 0;
-                int id = 1;
-                List<ABS_Layer> layers = new List<ABS_Layer>();
-                do
+            foreach (string MLPath in materialLibraryPaths)
+            {
+                try
                 {
+                    if (!File.Exists(MLPath)) continue;
+
+                    ML_Reader = new System.IO.StreamReader(MLPath);
+                    ML_Reader.ReadLine();
                     do
                     {
-                        string line = lines[i];
                         try
                         {
-                            string[] D_Mat = line.Split(new char[] { ',' });
-                            if (double.Parse(D_Mat[0]) == id)
-                            {
-                                string Name = D_Mat[1].Trim();
-                                //Assess type of layer
-                                switch (D_Mat[2].Trim())
-                                {
-                                    case "N/A":
-                                        substrate_ECC.Add(double.Parse(D_Mat[9]));
-                                        Names.Add(Name);
-                                        break;
-                                    case "Normal Weight CMU":
-                                        layers.Add(ABS_Layer.CreateSolid(double.Parse(D_Mat[6]), double.Parse(D_Mat[3]), double.Parse(D_Mat[11])*1E9, double.Parse(D_Mat[12]), double.Parse(D_Mat[7]), "Normal Weight CMU"));
-                                        break;
-                                    case "Gypsum Wall Board":
-                                        layers.Add(ABS_Layer.CreateSolid(double.Parse(D_Mat[6]), double.Parse(D_Mat[3]), double.Parse(D_Mat[11])*1E9, double.Parse(D_Mat[12]), double.Parse(D_Mat[7]), "Gypsum Wall Board"));
-                                        break;
-                                    case "Batt Insulation":
-                                        layers.Add(ABS_Layer.Create_Miki(double.Parse(D_Mat[6]), 25000, .99, 0, 0, 0, 0, 0, 0, 0, 22, "Generic Batt"));
-                                        break;
-                                    case "airspace":
-                                        layers.Add(ABS_Layer.Airspace(double.Parse(D_Mat[6])));
-                                        break;
-                                }
-                            }
+                            string Material = ML_Reader.ReadLine();
+                            string[] D_Mat = Material.Split(new char[] { ',' });
+                            string Name = D_Mat[0].Trim();
+                            Names.Add(Name);
+                            Category.Add(D_Mat[1].Trim());
+                            Application.Add(D_Mat[2].Trim());
+                            Density_kgm.Add(double.Parse(D_Mat[3].Trim()));
+                            double T = double.Parse(D_Mat[4].Trim());
+                            Thickness.Add(T);
+                            Flow_Resistivity.Add(double.Parse(D_Mat[5].Trim()));
+                            FR_Dev.Add(double.Parse(D_Mat[6].Trim('(', ')', '±')));
+                            Abs_Coef.Add(new double[13] { double.Parse(D_Mat[7].Trim()), double.Parse(D_Mat[8].Trim()), double.Parse(D_Mat[9].Trim()), double.Parse(D_Mat[10].Trim()), double.Parse(D_Mat[11].Trim()), double.Parse(D_Mat[12].Trim()), double.Parse(D_Mat[13].Trim()), double.Parse(D_Mat[14].Trim()), double.Parse(D_Mat[15].Trim()), double.Parse(D_Mat[16].Trim()), double.Parse(D_Mat[17].Trim()), double.Parse(D_Mat[18].Trim()), double.Parse(D_Mat[19].Trim()) });
+                            Abs_Method.Add(D_Mat[20].Contains("534") ? 0 : D_Mat[20].Contains("354") ? 1 : -1);
+                            double Simp_ECC_GWP = double.Parse(D_Mat[23]);
+                            ECC_Spec.Add(Simp_ECC_GWP);
+                            ECC_Abs.Add(Simp_ECC_GWP / T);
+                            Source.Add(D_Mat[22]);
                         }
                         catch (System.Exception)
-                        {
+                        { 
+                            continue; 
                         }
-                        i++;
-                    } while (i < lines.Count && lines[i].Substring(0, 2).Contains(id.ToString()));
-                    Substrates.Add(layers.ToArray());
-                    layers = new List<ABS_Layer>();
-                    id++;
-                } while (i < lines.Count);
+                    } while (!ML_Reader.EndOfStream);
+                    ML_Reader.Close();
+                }
+                catch (System.Exception)
+                {
+                }
             }
-            catch (System.Exception)
+
+            List<string> wallAssemblyLibraryPaths = new List<string>()
             {
+                Path.Combine(libPath, "Wall_Assemblies_EC.csv"),
+                Path.Combine(libPath, SIDELOAD_WALL_ASSEMBLIES_FILE)
+            };
+
+            foreach (string MLPath in wallAssemblyLibraryPaths)
+            {
+                try
+                {
+                    if (!File.Exists(MLPath)) continue;
+
+                    ML_Reader = new System.IO.StreamReader(MLPath);
+                    ML_Reader.ReadLine();
+                    List<string> lines = new List<string>();
+                    do
+                    {
+                        lines.Add(ML_Reader.ReadLine());
+                    } while (!ML_Reader.EndOfStream);
+                    ML_Reader.Close();
+
+                    int i = 0;
+                    int id = 1;
+                    List<ABS_Layer> layers = new List<ABS_Layer>();
+                    do
+                    {
+                        do
+                        {
+                            string line = lines[i];
+                            try
+                            {
+                                string[] D_Mat = line.Split(new char[] { ',' });
+                                if (double.Parse(D_Mat[0]) == id)
+                                {
+                                    string Name = D_Mat[1].Trim();
+                                    //Assess type of layer
+                                    switch (D_Mat[2].Trim())
+                                    {
+                                        case "N/A":
+                                            substrate_ECC.Add(double.Parse(D_Mat[9]));
+                                            Names.Add(Name);
+                                            break;
+                                        case "Normal Weight CMU":
+                                            layers.Add(ABS_Layer.CreateSolid(double.Parse(D_Mat[6]), double.Parse(D_Mat[3]), double.Parse(D_Mat[11]) * 1E9, double.Parse(D_Mat[12]), double.Parse(D_Mat[7]), "Normal Weight CMU"));
+                                            break;
+                                        case "Gypsum Wall Board":
+                                            layers.Add(ABS_Layer.CreateSolid(double.Parse(D_Mat[6]), double.Parse(D_Mat[3]), double.Parse(D_Mat[11]) * 1E9, double.Parse(D_Mat[12]), double.Parse(D_Mat[7]), "Gypsum Wall Board"));
+                                            break;
+                                        case "Batt Insulation":
+                                            layers.Add(ABS_Layer.Create_Miki(double.Parse(D_Mat[6]), 25000, .99, 0, 0, 0, 0, 0, 0, 0, 22, "Generic Batt"));
+                                            break;
+                                        case "airspace":
+                                            layers.Add(ABS_Layer.Airspace(double.Parse(D_Mat[6])));
+                                            break;
+                                        default:
+                                            if (D_Mat[3] != "N/A")
+                                                layers.Add(ABS_Layer.CreateSolid(double.Parse(D_Mat[6]), double.Parse(D_Mat[3]), double.Parse(D_Mat[11]) * 1E9, double.Parse(D_Mat[12]), double.Parse(D_Mat[7]), D_Mat[2]));
+                                            else
+                                                layers.Add(ABS_Layer.Create_Miki(double.Parse(D_Mat[6]), 25000, .99, 0, 0, 0, 0, 0, 0, 0, 22, D_Mat[2]));
+                                            break;
+                                    }
+                                }
+                            }
+                            catch (System.Exception x)
+                            {
+                            }
+                            i++;
+                        } while (i < lines.Count && lines[i].Substring(0, 2).Contains(id.ToString()));
+                        Substrates.Add(layers.ToArray());
+                        layers = new List<ABS_Layer>();
+                        id++;
+                    } while (i < lines.Count);
+                }
+                catch (System.Exception)
+                {
+                }
             }
         }
 

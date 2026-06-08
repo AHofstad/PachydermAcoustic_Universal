@@ -4973,6 +4973,64 @@ namespace Pachyderm_Acoustic
                 code += TL[7].ToString();
                 return code;
             }
+
+            public static double[] DecodeTriple(string code)
+            {
+                double[] values = new double[3];
+
+                if (string.IsNullOrWhiteSpace(code)) return values;
+
+                string[] parts = code.Split(';');
+
+                for (int i = 0; i < Math.Min(3, parts.Length); i++)
+                {
+                    double.TryParse(
+                        parts[i],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out values[i]);
+                }
+
+                return values;
+            }
+
+            public static double[] DecodeEight(string code)
+            {
+                double[] values = new double[8];
+
+                if (string.IsNullOrWhiteSpace(code)) return values;
+
+                string[] parts = code.Split(';');
+
+                for (int i = 0; i < Math.Min(8, parts.Length); i++)
+                {
+                    double.TryParse(
+                        parts[i],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out values[i]);
+                }
+
+                return values;
+            }
+
+            public static string EncodeEight(double[] values)
+            {
+                if (values == null || values.Length < 8)
+                {
+                    values = new double[8];
+                }
+
+                string[] parts = new string[8];
+
+                for (int i = 0; i < 8; i++)
+                {
+                    parts[i] = values[i].ToString(
+                        System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                return string.Join(";", parts);
+            }
         }
 
         public static class StandardConstructions
