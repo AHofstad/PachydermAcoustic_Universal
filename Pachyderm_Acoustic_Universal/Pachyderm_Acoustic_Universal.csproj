@@ -1,12 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net48</TargetFrameworks>
+		<TargetFramework>net8.0-windows</TargetFramework>
 		<OutputType>Library</OutputType>
 		<RootNamespace>Pachyderm_Acoustic</RootNamespace>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<!--<UseWPF>false</UseWPF>-->
-		<!-->ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>-->
 		<LangVersion>latest</LangVersion>
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+		<OutputPath>bin\Debug\</OutputPath>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+		<OutputPath>bin\Release\</OutputPath>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
 		<OutputPath>bin\x64\Debug\</OutputPath>
@@ -20,7 +27,7 @@
 		<EnableSourceControlManagerQueries>true</EnableSourceControlManagerQueries>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\Hare\Hare.csproj" />
+		<ProjectReference Include="..\..\Hare\Hare.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="HDF.PInvoke.1.10" Version="1.10.612" />
@@ -34,10 +41,6 @@
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
-	</ItemGroup>
-	<ItemGroup>
-		<Compile Remove="Classes_Complete_Trace-PachydermNest.cs" />
-		<Compile Remove="Pach_Absorption_Designer.cs" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Remove="Acoustic_Materials_and_ECCs.csv" />
